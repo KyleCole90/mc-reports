@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { itemHealth, type Finding, type Severity } from '../data/queries'
 import { CLASSROOMS } from '../data/seed'
 import { MATERIALS } from '../data/api'
@@ -12,27 +12,61 @@ const SEV_FILL: Record<Severity, string> = {
   warning: 'var(--status-warning)',
 }
 
+/* Same names the badge and legend use. */
+const SEV_LABEL: Record<Severity, string> = { critical: 'Critical', serious: 'Serious', warning: 'Review' }
+
+const WEIGHTING_KINDS = new Set(['Overweighted and failing', 'Too easy for its weight'])
+
+/* The heat map links here as #items?tracker=ID&standard=CODE. */
+function readParams() {
+  const q = window.location.hash.split('?')[1] ?? ''
+  const p = new URLSearchParams(q)
+  return { tracker: p.get('tracker') ?? 'all', standard: p.get('standard') ?? 'all' }
+}
+
 export function ItemHealth() {
-  const [classroomId, setClassroomId] = useState<string>('all')
+  const [classroomId, setClassroomId] = useState<string>(() => readParams().tracker)
+  const [standard, setStandard] = useState<string>(() => readParams().standard)
   const [severity, setSeverity] = useState<string>('all')
 
+  useEffect(() => {
+    const onHash = () => {
+      const p = readParams()
+      setClassroomId(p.tracker)
+      setStandard(p.standard)
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
+
   const all = useMemo(() => itemHealth(), [])
+  const standards = useMemo(() => [...new Set(all.map((f) => f.standard))].sort(), [all])
 
   const findings = useMemo(
     () =>
       all.filter(
         (f) =>
           (classroomId === 'all' || f.classroom_id === classroomId) &&
+          (standard === 'all' || f.standard === standard) &&
           (severity === 'all' || f.severity === severity)
       ),
-    [all, classroomId, severity]
+    [all, classroomId, standard, severity]
   )
+
+  const filtered = classroomId !== 'all' || standard !== 'all' || severity !== 'all'
+  function clearFilters() {
+    setClassroomId('all')
+    setStandard('all')
+    setSeverity('all')
+    if (window.location.hash.includes('?')) window.location.hash = 'items'
+  }
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { critical: 0, serious: 0, warning: 0 }
     for (const f of all) c[f.severity]++
     return c
   }, [all])
+  const weighting = all.filter((f) => WEIGHTING_KINDS.has(f.kind)).length
 
   const totalItems = MATERIALS.reduce((a, m) => a + m.total_score, 0)
 
@@ -47,13 +81,6 @@ export function ItemHealth() {
         </p>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12 }}>
-        <StatTile label="Items scanned" value={totalItems.toLocaleString()} note={`${MATERIALS.length} assessments across ${CLASSROOMS.length} trackers`} />
-        <StatTile label="Needs a fix" value={all.length} note={`${((all.length / totalItems) * 100).toFixed(1)}% of all items`} />
-        <StatTile label="Likely miskeyed" value={counts.critical} note="Fix before the next window" />
-        <StatTile label="Weighting problems" value={counts.serious + counts.warning} note="Points do not match difficulty" />
-      </div>
-
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <Select
           label="Tracker"
@@ -62,19 +89,50 @@ export function ItemHealth() {
           options={[{ value: 'all', label: 'All trackers' }, ...CLASSROOMS.map((c) => ({ value: c.id, label: c.title }))]}
         />
         <Select
+          label="Standard"
+          value={standard}
+          onChange={setStandard}
+          options={[{ value: 'all', label: 'All standards' }, ...standards.map((s) => ({ value: s, label: s }))]}
+        />
+        <Select
           label="Severity"
           value={severity}
           onChange={setSeverity}
           options={[
             { value: 'all', label: 'All severities' },
-            ...SEV_ORDER.map((s) => ({ value: s as string, label: s[0].toUpperCase() + s.slice(1) })),
+            ...SEV_ORDER.map((s) => ({ value: s as string, label: SEV_LABEL[s] })),
           ]}
         />
+        {filtered && (
+          <button
+            onClick={clearFilters}
+            style={{
+              font: 'inherit', fontSize: 12.5, padding: '7px 12px', borderRadius: 7,
+              border: '1px solid var(--border)', background: 'transparent',
+              color: 'var(--text-secondary)', cursor: 'pointer',
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12 }}>
+        <StatTile label="Items scanned" value={totalItems.toLocaleString()} note={`${MATERIALS.length} assessments across ${CLASSROOMS.length} trackers`} />
+        <StatTile label="Needs a fix" value={all.length} note={`${((all.length / totalItems) * 100).toFixed(1)}% of all items`} />
+        <StatTile label="Likely miskeyed" value={counts.critical} note="Fix before the next window" />
+        <StatTile label="Weighting problems" value={weighting} note="Points do not match difficulty" />
       </div>
 
       {findings.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: 44, color: 'var(--text-secondary)' }}>
-          No items flagged for this filter.
+          No items flagged for this filter.{' '}
+          <button
+            onClick={clearFilters}
+            style={{ font: 'inherit', fontSize: 13, border: 0, background: 'none', color: 'var(--series-1)', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+          >
+            Clear filters
+          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

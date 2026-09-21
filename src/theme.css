@@ -158,9 +158,15 @@ td {
 }
 tbody tr:hover { background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
 
+.tip:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; border-radius: 4px; }
+
 @media print {
-  .no-print { display: none !important; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .no-print, [role="tooltip"] { display: none !important; }
   body { background: #fff; }
   .report-card { border: 0 !important; }
+  .report-card tr, .report-card thead, .report-card > div { break-inside: avoid; }
+  .report-card th.col-student { width: 130px !important; }
   @page { margin: 14mm; }
 }
+.tip > a:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }

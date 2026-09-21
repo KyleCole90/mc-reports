@@ -65,10 +65,15 @@ export function CoverageGaps() {
         </p>
         <div style={{ display: 'flex', gap: 2, height: 44 }}>
           {segments.map((s, i) => (
-            <Tooltip key={s.key} content={<><strong>{s.n}</strong> {s.n === 1 ? 'standard' : 'standards'} — {s.label}</>}>
+            <Tooltip
+              key={s.key}
+              content={<><strong>{s.n}</strong> {s.n === 1 ? 'standard' : 'standards'} — {s.label}</>}
+              label={`${s.n} ${s.n === 1 ? 'standard' : 'standards'}: ${s.label}`}
+              style={{ flex: s.n, minWidth: 34 }}
+            >
               <div
                 style={{
-                  flex: s.n,
+                  flex: 1,
                   background: s.fill,
                   borderRadius:
                     segments.length === 1 ? 4

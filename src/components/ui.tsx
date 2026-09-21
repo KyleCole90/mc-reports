@@ -1,14 +1,25 @@
-import { useState, type ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 
 /* ---------- Hover tooltip ---------- */
 
-export function Tooltip({ content, children }: { content: ReactNode; children: ReactNode }) {
+export function Tooltip({ content, children, label, style }: {
+  content: ReactNode
+  children: ReactNode
+  /** When set, the wrapper is keyboard-focusable and announces this text. */
+  label?: string
+  style?: CSSProperties
+}) {
   const [open, setOpen] = useState(false)
   return (
     <span
-      style={{ position: 'relative', display: 'contents' }}
+      className="tip"
+      tabIndex={label ? 0 : undefined}
+      aria-label={label}
+      style={{ position: 'relative', display: 'inline-flex', flexShrink: 0, ...style }}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={() => setOpen(false)}
     >
       {children}
       {open && (

@@ -52,6 +52,7 @@ export function StudentReportCard() {
           student-level score. The real version joins two sources: per-student results and the roster
           from Canvas Data through the Data Access Platform, and the standards and tracker structure
           from the MasteryConnect API. What you see below is the report shape, drawn on invented data.
+          That is what the red Mock tag on this tab means.
         </p>
       </div>
 
@@ -133,7 +134,7 @@ export function StudentReportCard() {
             <tr>
               <th>Standard</th>
               <th>Description</th>
-              <th style={{ width: 210 }}>Student</th>
+              <th className="col-student" style={{ width: 210 }}>Student</th>
               <th style={{ textAlign: 'right' }}>Class avg</th>
               <th>Band</th>
             </tr>
@@ -152,7 +153,11 @@ export function StudentReportCard() {
                   </td>
                   <td className="secondary" style={{ fontSize: 12.5 }}>{o.label}</td>
                   <td>
-                    <Tooltip content={<>{s.score}% · {b.label} · class average {classAvg}%</>}>
+                    <Tooltip
+                      content={<>{s.score}% · {b.label} · class average {classAvg}%</>}
+                      label={`${o.code}: ${s.score}%, ${b.label}, class average ${classAvg}%`}
+                      style={{ display: 'flex', width: '100%' }}
+                    >
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, width: '100%' }}>
                         <span
                           aria-hidden

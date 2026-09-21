@@ -26,6 +26,13 @@ export function MasteryHeatMap() {
     [objectives, columnAverages]
   )
 
+  /* True when every tracker that assessed the standard sits under the cut. */
+  const everywhereLow = weakest.every(({ o }) => {
+    const i = objectives.indexOf(o)
+    return rows.every((r) => r.cells[i].score === null || r.cells[i].score < 75)
+  })
+  const scope = schoolId === 'all' ? 'district' : 'school'
+
   const overall = Math.round(rows.reduce((a, r) => a + r.average, 0) / rows.length)
   const belowCut = rows.flatMap((r) => r.cells).filter((c) => c.score !== null && c.score < 75).length
   const scored = rows.flatMap((r) => r.cells).filter((c) => c.score !== null).length
@@ -68,7 +75,7 @@ export function MasteryHeatMap() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12 }}>
         <StatTile label="Average percent correct" value={overall} unit="%" note={`Across ${scored} tracker-standard pairs`} />
         <StatTile label="Below the mastery cut" value={Math.round((belowCut / scored) * 100)} unit="%" note={`${belowCut} of ${scored} pairs under 75%`} />
-        <StatTile label="Weakest standard" value={weakest[0]?.o.code ?? '—'} note={`${weakest[0]?.avg ?? 0}% district average`} />
+        <StatTile label="Weakest standard" value={weakest[0]?.o.code ?? '—'} note={`${weakest[0]?.avg ?? 0}% ${scope} average`} />
         <StatTile label="Coverage gaps" value={gaps} note="Tracker-standard pairs never assessed" />
       </div>
 
@@ -83,8 +90,11 @@ export function MasteryHeatMap() {
                 {i < weakest.length - 2 ? ', ' : i === weakest.length - 2 ? ', and ' : ''}
               </span>
             ))}
-            . Every row is low on these, so they read as a curriculum or pacing problem rather than a
-            single-classroom problem.
+            .{' '}
+            {everywhereLow
+              ? 'Every tracker that assessed them is under the cut, so they read as a curriculum or pacing problem rather than a single-classroom problem.'
+              : 'At least one tracker is at or above the cut on them, so check the rows before calling it a curriculum problem.'}
+            {' '}Click any cell to see its flagged items.
           </p>
         </div>
       )}
@@ -94,9 +104,11 @@ export function MasteryHeatMap() {
           <div style={{ minWidth: LABEL_W + objectives.length * (CELL + 2) + 90 }}>
             {/* column headers */}
             <div style={{ display: 'flex', gap: 2, marginBottom: 4 }}>
-              <div style={{ width: LABEL_W, flexShrink: 0 }} />
+              <div style={{ width: LABEL_W, flexShrink: 0, fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
+                Tracker
+              </div>
               {objectives.map((o) => (
-                <Tooltip key={o.id} content={<><strong>{o.code}</strong> — {o.label}</>}>
+                <Tooltip key={o.id} content={<><strong>{o.code}</strong> — {o.label}</>} label={`${o.code}: ${o.label}`}>
                   <div
                     style={{
                       width: CELL, flexShrink: 0, fontSize: 10, lineHeight: 1.25,
@@ -125,7 +137,7 @@ export function MasteryHeatMap() {
                   const o = objectives[i]
                   if (c.score === null) {
                     return (
-                      <Tooltip key={o.id} content={<><strong>{r.teacher}</strong> · {o.code} — never assessed</>}>
+                      <Tooltip key={o.id} content={<><strong>{r.teacher}</strong> · {o.code} — never assessed</>} label={`${r.teacher}, ${o.code}: never assessed`}>
                         <div
                           style={{
                             width: CELL, height: 36, flexShrink: 0, borderRadius: 4,
@@ -144,19 +156,21 @@ export function MasteryHeatMap() {
                   return (
                     <Tooltip
                       key={o.id}
-                      content={<><strong>{r.teacher}</strong> · {o.code}<br />{c.score}% correct · {band.label}</>}
+                      content={<><strong>{r.teacher}</strong> · {o.code}<br />{c.score}% correct · {band.label}<br /><span style={{ opacity: 0.7 }}>Click for flagged items</span></>}
                     >
-                      <div
+                      <a
                         className="tnum"
+                        href={`#items?tracker=${r.classroom_id}&standard=${encodeURIComponent(o.code)}`}
+                        aria-label={`${r.teacher}, ${o.code}: ${c.score}% correct, ${band.label}. Open item health for this cell.`}
                         style={{
                           width: CELL, height: 36, flexShrink: 0, borderRadius: 4,
-                          background: band.fill, color: band.ink,
+                          background: band.fill, color: band.ink, textDecoration: 'none',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 13, fontWeight: 500, cursor: 'default',
+                          fontSize: 13, fontWeight: 500,
                         }}
                       >
                         {c.score}
-                      </div>
+                      </a>
                     </Tooltip>
                   )
                 })}

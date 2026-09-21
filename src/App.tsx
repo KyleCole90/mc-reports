@@ -15,13 +15,23 @@ const REPORTS = [
 type ReportId = (typeof REPORTS)[number]['id']
 
 function readHash(): ReportId {
-  const h = window.location.hash.replace('#', '')
+  const h = window.location.hash.replace('#', '').split('?')[0]
   return REPORTS.some((r) => r.id === h) ? (h as ReportId) : 'heatmap'
+}
+
+type Theme = 'light' | 'dark'
+
+function initialTheme(): Theme {
+  try {
+    const stored = localStorage.getItem('theme')
+    if (stored === 'light' || stored === 'dark') return stored
+  } catch { /* storage unavailable */ }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 export function App() {
   const [active, setActive] = useState<ReportId>(readHash)
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<Theme>(initialTheme)
 
   useEffect(() => {
     const onHash = () => setActive(readHash())
@@ -31,6 +41,7 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
+    try { localStorage.setItem('theme', theme) } catch { /* storage unavailable */ }
   }, [theme])
 
   const Current = REPORTS.find((r) => r.id === active)!.Component
