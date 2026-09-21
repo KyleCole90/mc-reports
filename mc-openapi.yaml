@@ -1,0 +1,1853 @@
+---
+openapi: 3.0.1
+info:
+  title: MasteryConnect REST API
+  version: v2
+  description: 'Read-only, district-scoped data API secured with OAuth 2.0 Client
+    Credentials: exchange your client_id/client_secret for a short-lived Bearer token,
+    then call the API with it.'
+paths:
+  "/api/v2/banks/{bank_id}/passages":
+    parameters:
+    - name: bank_id
+      in: path
+      schema:
+        type: integer
+      required: true
+    get:
+      summary: List the passages of a bank
+      tags:
+      - Passages
+      security:
+      - oauth2_client_credentials:
+        - passages:read
+      parameters:
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: created_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: passages listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the passages:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '404':
+          description: bank not shared with the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/banks/{bank_id}/passages/{id}":
+    parameters:
+    - name: bank_id
+      in: path
+      schema:
+        type: integer
+      required: true
+    - name: id
+      in: path
+      schema:
+        type: integer
+      required: true
+    get:
+      summary: Fetch a passage in a bank
+      tags:
+      - Passages
+      security:
+      - oauth2_client_credentials:
+        - passages:read
+      responses:
+        '200':
+          description: passage found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: passage not in the bank
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/banks/{bank_id}/questions":
+    parameters:
+    - name: bank_id
+      in: path
+      schema:
+        type: integer
+      required: true
+    get:
+      summary: List questions of a bank
+      tags:
+      - Banks
+      security:
+      - oauth2_client_credentials:
+        - questions:read
+      parameters:
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: created_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: questions listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '404':
+          description: bank not shared with the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/banks/{bank_id}/questions/{id}":
+    parameters:
+    - name: bank_id
+      in: path
+      schema:
+        type: integer
+      required: true
+    - name: id
+      in: path
+      schema:
+        type: integer
+      required: true
+    get:
+      summary: Fetch a question of a bank
+      tags:
+      - Banks
+      security:
+      - oauth2_client_credentials:
+        - questions:read
+      responses:
+        '200':
+          description: question found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: unknown question in this bank
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/banks":
+    get:
+      summary: List banks
+      tags:
+      - Banks
+      security:
+      - oauth2_client_credentials:
+        - banks:read
+      parameters:
+      - name: filter[bank_type]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: filter[name]
+        in: query
+        schema:
+          type: string
+        required: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: name,
+          created_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: banks listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the banks:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/banks/{id}":
+    get:
+      summary: Fetch a bank
+      tags:
+      - Banks
+      security:
+      - oauth2_client_credentials:
+        - banks:read
+      parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: bank found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: bank not shared with the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/class_objectives":
+    get:
+      summary: List class objectives
+      tags:
+      - Class Objectives
+      security:
+      - oauth2_client_credentials:
+        - class_objectives:read
+      parameters:
+      - name: filter[available]
+        in: query
+        schema:
+          type: boolean
+        required: false
+      - name: filter[class_objective_type]
+        in: query
+        schema:
+          type: string
+        required: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: name.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: class objectives listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the class_objectives:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/class_objectives/{id}":
+    get:
+      summary: Fetch a class objective
+      tags:
+      - Class Objectives
+      security:
+      - oauth2_client_credentials:
+        - class_objectives:read
+      parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: class objective found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: class objective not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/classrooms/{classroom_id}/objectives":
+    get:
+      summary: List the objectives of a classroom
+      tags:
+      - Classrooms
+      security:
+      - oauth2_client_credentials:
+        - objectives:read
+      parameters:
+      - name: classroom_id
+        in: path
+        schema:
+          type: integer
+        required: true
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: name,
+          created_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: objectives listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the objectives:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '404':
+          description: classroom not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/classrooms":
+    get:
+      summary: List classrooms
+      tags:
+      - Classrooms
+      security:
+      - oauth2_client_credentials:
+        - classrooms:read
+      parameters:
+      - name: filter[school_id]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: filter[teacher_id]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: filter[archived]
+        in: query
+        schema:
+          type: boolean
+        required: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: title,
+          created_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: classrooms listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the classrooms:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/classrooms/{id}":
+    get:
+      summary: Fetch a classroom
+      tags:
+      - Classrooms
+      security:
+      - oauth2_client_credentials:
+        - classrooms:read
+      parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: classroom found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: classroom not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/curriculum_maps/{curriculum_map_id}/materials":
+    parameters:
+    - name: curriculum_map_id
+      in: path
+      schema:
+        type: integer
+      required: true
+    get:
+      summary: List the materials of a curriculum map
+      tags:
+      - Curriculum Maps
+      security:
+      - oauth2_client_credentials:
+        - materials:read
+      parameters:
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: title,
+          created_at, updated_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: materials listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '404':
+          description: curriculum_map_id is not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/curriculum_maps/{curriculum_map_id}/objectives":
+    parameters:
+    - name: curriculum_map_id
+      in: path
+      schema:
+        type: integer
+      required: true
+    get:
+      summary: List the objectives of a curriculum map
+      tags:
+      - Curriculum Maps
+      security:
+      - oauth2_client_credentials:
+        - objectives:read
+      parameters:
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: name,
+          created_at, updated_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: objectives listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '404':
+          description: curriculum_map_id is not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/curriculum_maps":
+    get:
+      summary: List curriculum maps
+      tags:
+      - Curriculum Maps
+      security:
+      - oauth2_client_credentials:
+        - curriculum_maps:read
+      parameters:
+      - name: filter[privacy_level]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: title,
+          created_at, updated_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: curriculum maps listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the curriculum_maps:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/curriculum_maps/{id}":
+    get:
+      summary: Fetch a curriculum map
+      tags:
+      - Curriculum Maps
+      security:
+      - oauth2_client_credentials:
+        - curriculum_maps:read
+      parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: curriculum map found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: curriculum map not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/districts/{district_id}/schools":
+    parameters:
+    - name: district_id
+      in: path
+      schema:
+        type: integer
+      required: true
+    get:
+      summary: List the schools of a district
+      tags:
+      - Schools
+      security:
+      - oauth2_client_credentials:
+        - schools:read
+      parameters:
+      - name: filter[nces_school_id]
+        in: query
+        schema:
+          type: string
+        required: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: name,
+          created_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: schools listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '404':
+          description: district_id is not the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/districts/{district_id}/schools/{id}":
+    parameters:
+    - name: district_id
+      in: path
+      schema:
+        type: integer
+      required: true
+    - name: id
+      in: path
+      schema:
+        type: integer
+      required: true
+    get:
+      summary: Fetch a school in a district
+      tags:
+      - Schools
+      security:
+      - oauth2_client_credentials:
+        - schools:read
+      responses:
+        '200':
+          description: school found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: school not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/districts":
+    get:
+      summary: List districts (the caller district only)
+      tags:
+      - Districts
+      security:
+      - oauth2_client_credentials:
+        - districts:read
+      responses:
+        '200':
+          description: returns the caller district
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the districts:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/districts/{id}":
+    get:
+      summary: Fetch a district
+      tags:
+      - Districts
+      security:
+      - oauth2_client_credentials:
+        - districts:read
+      parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: the caller district
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: any other district id
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/materials/{material_id}/items":
+    get:
+      summary: List the items of a material
+      tags:
+      - Items
+      security:
+      - oauth2_client_credentials:
+        - items:read
+      parameters:
+      - name: material_id
+        in: path
+        schema:
+          type: integer
+        required: true
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: id.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: items listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the items:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '404':
+          description: material not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/materials":
+    get:
+      summary: List materials
+      tags:
+      - Materials
+      security:
+      - oauth2_client_credentials:
+        - materials:read
+      parameters:
+      - name: filter[subject_id]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: filter[objective_id]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: filter[draft]
+        in: query
+        schema:
+          type: boolean
+        required: false
+      - name: filter[available]
+        in: query
+        schema:
+          type: boolean
+        required: false
+      - name: filter[updated_since]
+        in: query
+        schema:
+          type: string
+          format: date-time
+        required: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: title,
+          created_at, updated_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: materials listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                          properties:
+                            title:
+                              type: string
+                              nullable: true
+                            description:
+                              type: string
+                              nullable: true
+                            total_score:
+                              type: integer
+                              nullable: true
+                            privacy_level:
+                              type: integer
+                            draft:
+                              type: boolean
+                            available:
+                              type: boolean
+                            created_at:
+                              type: string
+                              nullable: true
+                            updated_at:
+                              type: string
+                              nullable: true
+                            objective:
+                              type: object
+                              nullable: true
+                            subject:
+                              type: object
+                              nullable: true
+                            teacher:
+                              type: object
+                              nullable: true
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the materials:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/materials/{id}":
+    get:
+      summary: Fetch a material
+      tags:
+      - Materials
+      security:
+      - oauth2_client_credentials:
+        - materials:read
+      parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: material found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                      attributes:
+                        type: object
+                        properties:
+                          title:
+                            type: string
+                            nullable: true
+                          objective:
+                            type: object
+                            nullable: true
+                          subject:
+                            type: object
+                            nullable: true
+                          teacher:
+                            type: object
+                            nullable: true
+                          items:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                item_type:
+                                  type: integer
+                                  nullable: true
+                                points:
+                                  type: integer
+                                  nullable: true
+                                objective:
+                                  type: object
+                                  nullable: true
+                      relationships:
+                        type: object
+        '404':
+          description: material not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/pathways":
+    get:
+      summary: List pathways
+      tags:
+      - Pathways
+      security:
+      - oauth2_client_credentials:
+        - pathways:read
+      parameters:
+      - name: filter[available]
+        in: query
+        schema:
+          type: boolean
+        required: false
+      - name: filter[subject_id]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: name.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: pathways listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the pathways:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/pathways/{id}":
+    get:
+      summary: Fetch a pathway
+      tags:
+      - Pathways
+      security:
+      - oauth2_client_credentials:
+        - pathways:read
+      parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: pathway found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: pathway not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/reports/{report_name}":
+    get:
+      summary: Run a report
+      tags:
+      - Reports
+      security:
+      - oauth2_client_credentials:
+        - reports:read
+      parameters:
+      - name: report_name
+        in: path
+        schema:
+          type: string
+        required: true
+        description: 'Report slug. Supported: item_analysis.'
+      - name: filter[classroom_id]
+        in: query
+        schema:
+          type: integer
+        required: false
+        description: 'item_analysis: required. The tracker/classroom to analyze.'
+      - name: filter[assessment_id]
+        in: query
+        schema:
+          type: integer
+        required: false
+        description: 'item_analysis: optional. Narrows to one assessment in the classroom.'
+      responses:
+        '200':
+          description: report rows returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      report_name:
+                        type: string
+                      columns:
+                        type: array
+                        items:
+                          type: string
+                      rows:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            question_number:
+                              type: integer
+                            item_title:
+                              type: string
+                              nullable: true
+                            standard:
+                              type: string
+                              nullable: true
+                            item_type:
+                              type: string
+                              nullable: true
+                            dok:
+                              type: integer
+                              nullable: true
+                            points:
+                              type: integer
+                            percent_correct:
+                              type: integer
+                  meta:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the reports:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '404':
+          description: unknown report name
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: missing required filter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/sections":
+    get:
+      summary: List sections
+      tags:
+      - Sections
+      security:
+      - oauth2_client_credentials:
+        - sections:read
+      parameters:
+      - name: filter[school_id]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: filter[archived]
+        in: query
+        schema:
+          type: boolean
+        required: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: name,
+          created_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: sections listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the sections:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/sections/{id}":
+    get:
+      summary: Fetch a section
+      tags:
+      - Sections
+      security:
+      - oauth2_client_credentials:
+        - sections:read
+      parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: section found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: section not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/teachers":
+    get:
+      summary: List teachers
+      tags:
+      - Teachers
+      security:
+      - oauth2_client_credentials:
+        - teachers:read
+      parameters:
+      - name: filter[school_id]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: sort
+        in: query
+        schema:
+          type: string
+        required: false
+        description: 'Comma-separated; prefix with - for descending. Allowed: last_name,
+          created_at.'
+      - name: page[number]
+        in: query
+        schema:
+          type: integer
+        required: false
+      - name: page[size]
+        in: query
+        schema:
+          type: integer
+          maximum: 100
+        required: false
+      responses:
+        '200':
+          description: teachers listed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        relationships:
+                          type: object
+                  meta:
+                    type: object
+                  links:
+                    type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the teachers:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '422':
+          description: invalid pagination parameter
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/teachers/{id}":
+    get:
+      summary: Fetch a teacher
+      tags:
+      - Teachers
+      security:
+      - oauth2_client_credentials:
+        - teachers:read
+      parameters:
+      - name: id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: teacher found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+        '404':
+          description: teacher not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+  "/api/v2/trackers/{tracker_id}/assessments":
+    get:
+      summary: List a tracker's standards, assessments, and assessment items as a
+        tree
+      tags:
+      - Trackers
+      security:
+      - oauth2_client_credentials:
+        - assessments:read
+      parameters:
+      - name: tracker_id
+        in: path
+        schema:
+          type: integer
+        required: true
+      responses:
+        '200':
+          description: tracker tree returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                      attributes:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          subject:
+                            type: string
+                            nullable: true
+                          teacher:
+                            type: string
+                            nullable: true
+                          school:
+                            type: string
+                            nullable: true
+                          archived:
+                            type: boolean
+                          created_at:
+                            type: string
+                            nullable: true
+                          updated_at:
+                            type: string
+                            nullable: true
+                          standards:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                name:
+                                  type: string
+                                  nullable: true
+                                assessments:
+                                  type: array
+                                  items:
+                                    type: object
+                                    properties:
+                                      id:
+                                        type: string
+                                      title:
+                                        type: string
+                                        nullable: true
+                                      assessment_items:
+                                        type: array
+                                        items:
+                                          type: object
+        '401':
+          description: missing or invalid token
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '403':
+          description: token valid but lacks the assessments:read scope
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+        '404':
+          description: tracker not in the caller district
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Errors"
+servers:
+- url: https://{host}
+  variables:
+    host:
+      default: api.masteryconnect.com
+components:
+  securitySchemes:
+    oauth2_client_credentials:
+      type: oauth2
+      description: OAuth 2.0 Client Credentials. Exchange your client_id/client_secret
+        at the token URL for a short-lived Bearer token, then call the API with it.
+      flows:
+        clientCredentials:
+          tokenUrl: "/api/v2/token"
+          scopes:
+            districts:read: Read the district
+            sections:read: Read sections
+            schools:read: Read schools
+            materials:read: Read materials
+            assessments:read: Read assessments
+            objectives:read: Read objectives (standards)
+            items:read: Read assessment items
+            banks:read: Read banks
+            questions:read: Read questions
+            passages:read: Read passages
+            curriculum_maps:read: Read curriculum maps
+            class_objectives:read: Read class objectives
+            classrooms:read: Read classrooms
+            teachers:read: Read teachers
+            pathways:read: Read pathways
+            reports:read: Read reports
+  schemas:
+    Errors:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              code:
+                type: string
+              title:
+                type: string
+              detail:
+                type: string
+security:
+- oauth2_client_credentials: []
