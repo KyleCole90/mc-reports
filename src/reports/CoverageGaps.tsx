@@ -7,7 +7,7 @@ import { Legend, Segmented, StatTile, SourceNote, Tooltip } from '../components/
 
 /* Coverage state is an ordered severity, not series identity, so it takes the
    reserved status palette. Each segment ships a number and a labelled legend
-   entry, so colour never carries the meaning alone. */
+   entry, so color never carries the meaning alone. */
 const STATE = {
   covered: { fill: 'var(--status-good)', ink: '#0b0b0b', glyph: '\u2713' },
   partial: { fill: 'var(--status-warning)', ink: '#0b0b0b', glyph: '\u25CF' },

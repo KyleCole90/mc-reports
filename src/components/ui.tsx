@@ -84,7 +84,7 @@ export function StatTile({ label, value, unit, note }: { label: string; value: s
   )
 }
 
-/* ---------- Severity badge: icon + label, never colour alone ---------- */
+/* ---------- Severity badge: icon + label, never color alone ---------- */
 
 const SEVERITY: Record<string, { fill: string; glyph: string; label: string }> = {
   critical: { fill: 'var(--status-critical)', glyph: '✕', label: 'Critical' },

@@ -36,7 +36,7 @@ export function MasteryHeatMap() {
       <header>
         <h1>Standards mastery heat map.</h1>
         <p className="secondary" style={{ margin: '6px 0 0', fontSize: 13.5, maxWidth: 680, lineHeight: 1.55 }}>
-          Which standards are we failing, and is it district-wide or just a few classrooms? Colour
+          Which standards are we failing, and is it district-wide or just a few classrooms? Color
           shows each tracker's average percent correct against the 75% mastery cut.
         </p>
       </header>

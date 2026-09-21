@@ -67,7 +67,7 @@ export function App() {
             </div>
             <button
               onClick={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}
-              aria-label="Toggle colour theme"
+              aria-label="Toggle color theme"
               style={{
                 font: 'inherit', fontSize: 12, padding: '5px 11px', borderRadius: 7,
                 border: '1px solid var(--border)', background: 'transparent',
