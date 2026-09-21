@@ -1,7 +1,9 @@
 /** NOT API-BACKED.
  *  MasteryConnect REST API v2 exposes no student endpoint and no student-level
  *  score. Everything in this file is invented to demonstrate the report shape.
- *  A real build needs Canvas, the Data Access Platform, or a v2 expansion. */
+ *  A real build joins two sources: per-student results and the roster from
+ *  Canvas Data through the Data Access Platform, and the standards and tracker
+ *  structure from the MasteryConnect API. */
 
 import { makeRng, hash, clamp, noise } from './prng'
 import { CLASSROOMS } from './seed'

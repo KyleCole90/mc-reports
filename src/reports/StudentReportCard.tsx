@@ -44,12 +44,14 @@ export function StudentReportCard() {
         style={{ borderLeft: '3px solid var(--status-critical)', padding: '14px 16px' }}
       >
         <h3 style={{ fontSize: 13, marginBottom: 5, color: 'var(--status-critical)' }}>
-          This report is not backed by the API.
+          Every name and number below is invented.
         </h3>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', maxWidth: 760 }}>
-          MasteryConnect REST API v2 has no student endpoint and returns no student-level score. Every
-          name and number below is invented to show the report shape. Shipping this for real needs
-          Canvas, the Data Access Platform, or a v2 expansion.
+          No single source can build this report. MasteryConnect REST API v2 carries the standards,
+          the trackers, and item-level percent correct, but it has no student endpoint and returns no
+          student-level score. The real version joins two sources: per-student results and the roster
+          from Canvas Data through the Data Access Platform, and the standards and tracker structure
+          from the MasteryConnect API. What you see below is the report shape, drawn on invented data.
         </p>
       </div>
 
@@ -195,7 +197,7 @@ export function StudentReportCard() {
 
       <SourceNote
         endpoints={['GET /api/v2/classrooms', 'GET /api/v2/classrooms/{id}/objectives']}
-        invented="Student names, per-student scores, and the class roster. v2 exposes no student endpoint."
+        invented="Student names, per-student scores, and the class roster. These come from Canvas Data through the Data Access Platform, joined to the API on classroom and student."
       />
     </div>
   )

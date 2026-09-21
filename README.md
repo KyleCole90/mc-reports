@@ -20,8 +20,9 @@ Live: https://kylecole90.github.io/mc-reports/
 
 The report card is labeled MOCK throughout. MasteryConnect REST API v2 has no
 student endpoint and returns no student-level score, so that report shows the
-shape only. Shipping it for real needs Canvas, the Data Access Platform, or a v2
-expansion.
+shape only. A real version joins two sources: per-student results and the roster
+from Canvas Data through the Data Access Platform, and the standards and tracker
+structure from the MasteryConnect API.
 
 ## Run it locally.
 
