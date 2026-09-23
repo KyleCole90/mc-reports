@@ -101,7 +101,7 @@ export function CoverageGaps() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
         <StatTile label="Standards in the map" value={total} note={c.map.name} method={METHODS.total} />
         <StatTile label="Assessed everywhere" value={c.counts.covered} note={`${Math.round((c.counts.covered / total) * 100)}% of the map`} method={METHODS.covered} />
         <StatTile label="Partly assessed" value={c.counts.partial} note="Some trackers skipped them" method={METHODS.partial} />

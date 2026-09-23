@@ -71,7 +71,7 @@ export function App() {
         <div style={{ maxWidth: 1240, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 20, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em' }}>Mastery reports</div>
+              <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.015em' }}>Mastery reports</div>
               <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>
                 {DISTRICT.name} · built on MasteryConnect REST API v2
               </div>

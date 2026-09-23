@@ -161,14 +161,21 @@ export function ItemHealth() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
         <StatTile label="Items scanned" value={totalItems.toLocaleString()} note={`${MATERIALS.length} assessments across ${CLASSROOMS.length} trackers`} method={METHODS.scanned} />
         <StatTile label="Needs a fix" value={all.length} note={`${((all.length / totalItems) * 100).toFixed(1)}% of all items`} method={METHODS.fix} />
         <StatTile label="Likely miskeyed" value={counts.critical} note="Fix before the next window" method={METHODS.miskey} />
         <StatTile label="Weighting problems" value={weighting} note="Points do not match difficulty" method={METHODS.weighting} />
       </div>
 
-      <MethodHeading method={METHODS.cards} title="Flagged items" />
+      <MethodHeading method={METHODS.cards} title="Flagged items">
+        <h2 style={{ fontSize: 14 }}>
+          Flagged items.{' '}
+          <span className="muted tnum" style={{ fontWeight: 400, fontSize: 13 }}>
+            {filtered ? `${findings.length} of ${all.length}` : all.length}
+          </span>
+        </h2>
+      </MethodHeading>
 
       {findings.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: 44, color: 'var(--text-secondary)' }}>

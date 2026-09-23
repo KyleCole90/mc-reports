@@ -130,7 +130,7 @@ export function MasteryHeatMap() {
         />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
         <StatTile label="Average percent correct" value={overall} unit="%" note={`Across ${scored} tracker-standard pairs`} method={METHODS.average} />
         <StatTile label="Below the mastery cut" value={Math.round((belowCut / scored) * 100)} unit="%" note={`${belowCut} of ${scored} pairs under 75%`} method={METHODS.below} />
         <StatTile label="Weakest standard" value={weakest[0]?.o.code ?? '—'} note={`${weakest[0]?.avg ?? 0}% ${scope} average`} method={METHODS.weakest} />
@@ -161,8 +161,10 @@ export function MasteryHeatMap() {
 
       {view === 'grid' ? (
         <div className="card" style={{ padding: 16, overflowX: 'auto' }}>
-          <div style={{ marginBottom: 8 }}>
-            <MethodHeading method={METHODS.grid} title="Heat map" />
+          <div style={{ marginBottom: 12 }}>
+            <MethodHeading method={METHODS.grid} title="Heat map">
+              <h2 style={{ fontSize: 14 }}>Trackers by standard.</h2>
+            </MethodHeading>
           </div>
           <div style={{ minWidth: LABEL_W + objectives.length * (CELL + 2) + 90 }}>
             {/* column headers */}
@@ -222,7 +224,7 @@ export function MasteryHeatMap() {
                       content={<><strong>{r.teacher}</strong> · {o.code}<br />{c.score}% correct · {band.label}<br /><span style={{ opacity: 0.7 }}>Click for flagged items</span></>}
                     >
                       <a
-                        className="tnum"
+                        className="tnum heat-cell"
                         href={`#items?tracker=${r.classroom_id}&standard=${encodeURIComponent(o.code)}`}
                         aria-label={`${r.teacher}, ${o.code}: ${c.score}% correct, ${band.label}. Open item health for this cell.`}
                         style={{
