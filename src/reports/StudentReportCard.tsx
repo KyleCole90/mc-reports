@@ -3,7 +3,45 @@ import { CLASSROOMS, MASTERY_BANDS, bandFor } from '../data/seed'
 import { objectiveById, classroomById, teacherById, schoolById, standardScore } from '../data/api'
 import { studentsFor, studentRecord } from '../data/students'
 import { DISTRICT } from '../data/seed'
-import { Legend, Select, SourceNote, Tooltip } from '../components/ui'
+import { Legend, MethodBadge, MethodHeading, Select, SourceNote, Tooltip, type Method } from '../components/ui'
+import { ENDPOINTS } from '../data/endpoints'
+import { PAIR_SAMPLE_NOTE, PRIORITY_NOTE } from '../data/methodNotes'
+
+const STRUCTURE_ENDPOINTS = [ENDPOINTS.classrooms, ENDPOINTS.classroomObjectives]
+
+const INVENTED = 'Student names, the roster, and every per-student score. MasteryConnect REST API v2 has no student endpoint. The real join pulls these from Canvas Data through the Data Access Platform, matched to the API on classroom and student.'
+
+const BAND_STEP = 'Band cuts: 90 and up Exceeds, 75 to 89 Mastery, 60 to 74 Near mastery, under 60 Remediate.'
+
+const METHODS = {
+  overall: {
+    steps: ['List the standards this tracker has assessed.', 'Take the student\u2019s score on each one.', 'Average them and round.', `The pill applies the cuts to that average. ${BAND_STEP}`],
+    endpoints: STRUCTURE_ENDPOINTS,
+    invented: INVENTED,
+  },
+  focus: {
+    steps: ['Take the student\u2019s score on every assessed standard.', 'Keep the ones under 75, the mastery cut.', 'Sort from lowest to highest and name the first three.'],
+    endpoints: STRUCTURE_ENDPOINTS,
+    invented: INVENTED,
+  },
+  student: {
+    steps: ['One bar per standard the tracker has assessed, sorted from lowest score to highest.', 'Bar length is the student\u2019s score. The vertical line marks the 75 cut.'],
+    endpoints: STRUCTURE_ENDPOINTS,
+    invented: `${INVENTED} ${PRIORITY_NOTE}`,
+  },
+  classAvg: {
+    steps: ['Pull the item analysis rows for the tracker and group them by standard.', 'Average percent_correct across the items on each standard and round. That is the class average.',
+      'The small number is the student\u2019s score minus the class average.'],
+    endpoints: [ENDPOINTS.classrooms, ENDPOINTS.itemAnalysis],
+    sample: PAIR_SAMPLE_NOTE,
+    invented: 'The student side of the difference. The class average itself is real API data.',
+  },
+  band: {
+    steps: [`Apply the cuts to the student\u2019s score on that standard. ${BAND_STEP}`],
+    endpoints: STRUCTURE_ENDPOINTS,
+    invented: INVENTED,
+  },
+} satisfies Record<string, Method>
 
 export function StudentReportCard() {
   const [classroomId, setClassroomId] = useState<string>('31001')
@@ -94,7 +132,8 @@ export function StudentReportCard() {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>
+            <div className="muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5, display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+              <MethodBadge method={METHODS.overall} title="Overall" />
               Overall
             </div>
             <div style={{ fontSize: 44, fontWeight: 600, lineHeight: 1, letterSpacing: '-0.025em' }}>
@@ -114,8 +153,10 @@ export function StudentReportCard() {
 
         {needsWork.length > 0 && (
           <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--grid)', background: 'color-mix(in srgb, var(--band-remediate) 7%, transparent)' }}>
-            <h3 style={{ fontSize: 12.5, marginBottom: 5 }}>Focus next.</h3>
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+            <MethodHeading method={METHODS.focus} title="Focus next">
+              <h3 style={{ fontSize: 12.5 }}>Focus next.</h3>
+            </MethodHeading>
+            <p style={{ margin: '5px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
               {needsWork.length} of {record.scores.length} standards sit below the 75% mastery cut. Start
               with{' '}
               {needsWork.slice(0, 3).map((s, i, arr) => (
@@ -134,9 +175,15 @@ export function StudentReportCard() {
             <tr>
               <th>Standard</th>
               <th>Description</th>
-              <th className="col-student" style={{ width: 210 }}>Student</th>
-              <th style={{ textAlign: 'right' }}>Class avg</th>
-              <th>Band</th>
+              <th className="col-student" style={{ width: 210 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>Student <MethodBadge method={METHODS.student} title="Student score" /></span>
+              </th>
+              <th style={{ textAlign: 'right' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><MethodBadge method={METHODS.classAvg} title="Class average" /> Class avg</span>
+              </th>
+              <th>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>Band <MethodBadge method={METHODS.band} title="Band" /></span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -201,7 +248,7 @@ export function StudentReportCard() {
       </div>
 
       <SourceNote
-        endpoints={['GET /api/v2/classrooms', 'GET /api/v2/classrooms/{id}/objectives']}
+        endpoints={[...STRUCTURE_ENDPOINTS, ENDPOINTS.itemAnalysis]}
         invented="Student names, per-student scores, and the class roster. These come from Canvas Data through the Data Access Platform, joined to the API on classroom and student."
       />
     </div>

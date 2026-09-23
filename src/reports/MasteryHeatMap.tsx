@@ -1,10 +1,68 @@
 import { useMemo, useState } from 'react'
 import { heatMap } from '../data/queries'
 import { MASTERY_BANDS, bandFor, SCHOOLS, type Subject } from '../data/seed'
-import { Legend, Segmented, Select, StatTile, Tooltip, SourceNote } from '../components/ui'
+import { Legend, MethodHeading, Segmented, Select, StatTile, Tooltip, SourceNote, type Method } from '../components/ui'
+import { ENDPOINTS } from '../data/endpoints'
+import { PAIR_SAMPLE_NOTE, PRIORITY_NOTE } from '../data/methodNotes'
 
 const CELL = 58
 const LABEL_W = 232
+
+const PAIR_ENDPOINTS = [ENDPOINTS.classrooms, ENDPOINTS.schools, ENDPOINTS.classroomObjectives, ENDPOINTS.itemAnalysis]
+
+/* One tracker-standard pair = one tracker's average percent correct on one standard. */
+const PAIR_STEPS = [
+  'List trackers for the chosen subject, filtered to the chosen school through the classroom\u2019s school relationship.',
+  'For each tracker, list the standards it has assessed.',
+  'For each tracker-standard pair, pull the item analysis rows for that standard and average percent_correct across the items, rounded. That is the pair score.',
+]
+
+const BAND_STEP = 'Band cuts: 90 and up Exceeds, 75 to 89 Mastery, 60 to 74 Near mastery, under 60 Remediate.'
+
+const METHODS = {
+  average: {
+    steps: [...PAIR_STEPS, 'Average each tracker\u2019s pair scores to get a tracker average, rounded.', 'Average the tracker averages, rounded. Standards a tracker never assessed are left out.'],
+    endpoints: PAIR_ENDPOINTS,
+    sample: PAIR_SAMPLE_NOTE,
+  },
+  below: {
+    steps: [...PAIR_STEPS, 'Count pairs with a score under 75, the mastery cut.', 'Divide by the number of scored pairs and round to a percent.'],
+    endpoints: PAIR_ENDPOINTS,
+    sample: PAIR_SAMPLE_NOTE,
+  },
+  weakest: {
+    steps: [...PAIR_STEPS, 'For each standard, average the pair scores of every tracker that assessed it and round. That is the column average.', 'Sort standards by rounded column average and show the lowest.'],
+    endpoints: PAIR_ENDPOINTS,
+    sample: PAIR_SAMPLE_NOTE,
+  },
+  gaps: {
+    steps: ['List trackers for the chosen subject and school.', 'For each tracker, list the standards it has assessed.', 'Count the standards in the subject that are missing from each tracker\u2019s list, and add those counts up.'],
+    endpoints: [ENDPOINTS.classrooms, ENDPOINTS.schools, ENDPOINTS.classroomObjectives],
+  },
+  readFirst: {
+    steps: [...PAIR_STEPS, 'Average each standard\u2019s pair scores and round. Sort ascending and take the three lowest.',
+      'Check every tracker that assessed those three. If all of them score under 75, the note calls it a curriculum or pacing problem. If any tracker is at or above 75, it says to check the rows.'],
+    endpoints: PAIR_ENDPOINTS,
+    sample: PAIR_SAMPLE_NOTE,
+  },
+  grid: {
+    steps: [...PAIR_STEPS, BAND_STEP, 'A hatched dash means the tracker never assessed that standard.',
+      'Tracker avg is the mean of that row\u2019s scored cells. District average is the mean of that column\u2019s scored cells. Both are rounded.',
+      'Clicking a cell opens Item health filtered to that tracker and standard.'],
+    endpoints: PAIR_ENDPOINTS,
+    sample: PAIR_SAMPLE_NOTE,
+    invented: PRIORITY_NOTE,
+  },
+  table: {
+    steps: [...PAIR_STEPS,
+      'District avg is the mean of the pair scores from every tracker that assessed the standard, rounded.',
+      'Trackers assessed counts trackers whose standards list includes it, out of all trackers in the filter.',
+      `Band applies the cuts to the district average. ${BAND_STEP}`],
+    endpoints: PAIR_ENDPOINTS,
+    sample: PAIR_SAMPLE_NOTE,
+    invented: PRIORITY_NOTE,
+  },
+} satisfies Record<string, Method>
 
 export function MasteryHeatMap() {
   const [subject, setSubject] = useState<Subject>('Mathematics')
@@ -73,16 +131,18 @@ export function MasteryHeatMap() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12 }}>
-        <StatTile label="Average percent correct" value={overall} unit="%" note={`Across ${scored} tracker-standard pairs`} />
-        <StatTile label="Below the mastery cut" value={Math.round((belowCut / scored) * 100)} unit="%" note={`${belowCut} of ${scored} pairs under 75%`} />
-        <StatTile label="Weakest standard" value={weakest[0]?.o.code ?? '—'} note={`${weakest[0]?.avg ?? 0}% ${scope} average`} />
-        <StatTile label="Coverage gaps" value={gaps} note="Tracker-standard pairs never assessed" />
+        <StatTile label="Average percent correct" value={overall} unit="%" note={`Across ${scored} tracker-standard pairs`} method={METHODS.average} />
+        <StatTile label="Below the mastery cut" value={Math.round((belowCut / scored) * 100)} unit="%" note={`${belowCut} of ${scored} pairs under 75%`} method={METHODS.below} />
+        <StatTile label="Weakest standard" value={weakest[0]?.o.code ?? '—'} note={`${weakest[0]?.avg ?? 0}% ${scope} average`} method={METHODS.weakest} />
+        <StatTile label="Coverage gaps" value={gaps} note="Tracker-standard pairs never assessed" method={METHODS.gaps} />
       </div>
 
       {weakest.length > 0 && (
         <div className="card" style={{ padding: '14px 16px', borderLeft: '3px solid var(--band-remediate)' }}>
-          <h3 style={{ fontSize: 13, marginBottom: 6 }}>Read this first.</h3>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
+          <MethodHeading method={METHODS.readFirst} title="Read this first">
+            <h3 style={{ fontSize: 13 }}>Read this first.</h3>
+          </MethodHeading>
+          <p style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)' }}>
             The three weakest standards are{' '}
             {weakest.map((w, i) => (
               <span key={w.o.id}>
@@ -101,6 +161,9 @@ export function MasteryHeatMap() {
 
       {view === 'grid' ? (
         <div className="card" style={{ padding: 16, overflowX: 'auto' }}>
+          <div style={{ marginBottom: 8 }}>
+            <MethodHeading method={METHODS.grid} title="Heat map" />
+          </div>
           <div style={{ minWidth: LABEL_W + objectives.length * (CELL + 2) + 90 }}>
             {/* column headers */}
             <div style={{ display: 'flex', gap: 2, marginBottom: 4 }}>
@@ -211,6 +274,9 @@ export function MasteryHeatMap() {
         </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '10px 12px 4px' }}>
+            <MethodHeading method={METHODS.table} title="Standards table" />
+          </div>
           <table>
             <thead>
               <tr>
@@ -263,7 +329,7 @@ export function MasteryHeatMap() {
         />
       </div>
 
-      <SourceNote endpoints={['GET /api/v2/reports/item_analysis', 'GET /api/v2/classrooms', 'GET /api/v2/classrooms/{id}/objectives']} />
+      <SourceNote endpoints={PAIR_ENDPOINTS} />
     </div>
   )
 }

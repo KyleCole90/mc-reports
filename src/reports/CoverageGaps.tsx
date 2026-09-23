@@ -3,7 +3,9 @@ import { coverage } from '../data/queries'
 import { assessedObjectiveIds } from '../data/api'
 import { teacherById } from '../data/api'
 import type { Subject } from '../data/seed'
-import { Legend, Segmented, StatTile, SourceNote, Tooltip } from '../components/ui'
+import { Legend, MethodHeading, Segmented, StatTile, SourceNote, Tooltip, type Method } from '../components/ui'
+import { ENDPOINTS } from '../data/endpoints'
+import { PRIORITY_NOTE } from '../data/methodNotes'
 
 /* Coverage state is an ordered severity, not series identity, so it takes the
    reserved status palette. Each segment ships a number and a labelled legend
@@ -13,6 +15,55 @@ const STATE = {
   partial: { fill: 'var(--status-warning)', ink: '#0b0b0b', glyph: '\u25CF' },
   never: { fill: 'var(--status-critical)', ink: '#ffffff', glyph: '\u2715' },
 }
+
+const MAP_ENDPOINTS = [ENDPOINTS.curriculumMaps, ENDPOINTS.curriculumMapObjectives]
+const MATCH_ENDPOINTS = [...MAP_ENDPOINTS, ENDPOINTS.classrooms, ENDPOINTS.classroomObjectives]
+
+const MATCH_STEPS = [
+  'Find the curriculum map for the chosen subject and list its planned standards.',
+  'List every tracker in the subject, then list the standards each one has assessed.',
+  'For each planned standard, count how many trackers assessed it.',
+]
+
+const METHODS = {
+  total: {
+    steps: [MATCH_STEPS[0], 'Count the planned standards.'],
+    endpoints: MAP_ENDPOINTS,
+  },
+  covered: {
+    steps: [...MATCH_STEPS, 'Count planned standards assessed by every tracker.', 'Divide by standards in the map for the percent.'],
+    endpoints: MATCH_ENDPOINTS,
+  },
+  partial: {
+    steps: [...MATCH_STEPS, 'Count planned standards assessed by at least one tracker but not all of them.'],
+    endpoints: MATCH_ENDPOINTS,
+  },
+  offMap: {
+    steps: [MATCH_STEPS[0], MATCH_STEPS[1], 'Take every standard any tracker assessed and drop the ones that are in the map.', 'Count what is left.'],
+    endpoints: MATCH_ENDPOINTS,
+  },
+  coverageBar: {
+    steps: [...MATCH_STEPS,
+      'Bucket each planned standard: every tracker is Assessed everywhere, some trackers is Assessed in some trackers, zero trackers is Never assessed.',
+      'Each segment\u2019s width is its count over the standards in the map.'],
+    endpoints: MATCH_ENDPOINTS,
+  },
+  neverAssessedTable: {
+    steps: [...MATCH_STEPS, 'Keep planned standards with a count of zero.'],
+    endpoints: MATCH_ENDPOINTS,
+    invented: PRIORITY_NOTE,
+  },
+  partlyAssessedTable: {
+    steps: [...MATCH_STEPS, 'Keep planned standards with a count above zero but below the tracker total.',
+      'Coverage is that count over the trackers in the subject. Missing from names the teacher of each tracker whose list lacks the standard.'],
+    endpoints: [...MATCH_ENDPOINTS, ENDPOINTS.teacher],
+    invented: PRIORITY_NOTE,
+  },
+  offMapTable: {
+    steps: [MATCH_STEPS[0], MATCH_STEPS[1], 'Keep standards that a tracker assessed but the map never planned.', 'Trackers is how many trackers assessed it over the trackers in the subject.'],
+    endpoints: MATCH_ENDPOINTS,
+  },
+} satisfies Record<string, Method>
 
 export function CoverageGaps() {
   const [subject, setSubject] = useState<Subject>('Mathematics')
@@ -51,16 +102,18 @@ export function CoverageGaps() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12 }}>
-        <StatTile label="Standards in the map" value={total} note={c.map.name} />
-        <StatTile label="Assessed everywhere" value={c.counts.covered} note={`${Math.round((c.counts.covered / total) * 100)}% of the map`} />
-        <StatTile label="Partly assessed" value={c.counts.partial} note="Some trackers skipped them" />
-        <StatTile label="Off the map" value={c.offMap.length} note="Assessed but never planned" />
+        <StatTile label="Standards in the map" value={total} note={c.map.name} method={METHODS.total} />
+        <StatTile label="Assessed everywhere" value={c.counts.covered} note={`${Math.round((c.counts.covered / total) * 100)}% of the map`} method={METHODS.covered} />
+        <StatTile label="Partly assessed" value={c.counts.partial} note="Some trackers skipped them" method={METHODS.partial} />
+        <StatTile label="Off the map" value={c.offMap.length} note="Assessed but never planned" method={METHODS.offMap} />
       </div>
 
       {/* Stacked bar: part-to-whole with direct labels */}
       <div className="card">
-        <h2 style={{ fontSize: 14, marginBottom: 4 }}>Map coverage.</h2>
-        <p className="muted" style={{ fontSize: 12, margin: '0 0 14px' }}>
+        <MethodHeading method={METHODS.coverageBar} title="Map coverage">
+          <h2 style={{ fontSize: 14 }}>Map coverage.</h2>
+        </MethodHeading>
+        <p className="muted" style={{ fontSize: 12, margin: '4px 0 14px' }}>
           {total} planned standards across {c.classrooms.length} trackers.
         </p>
         <div style={{ display: 'flex', gap: 2, height: 44 }}>
@@ -100,8 +153,10 @@ export function CoverageGaps() {
       {/* The headline gap */}
       {neverAssessed.length > 0 && (
         <div className="card" style={{ borderLeft: '3px solid var(--status-critical)' }}>
-          <h2 style={{ fontSize: 14, marginBottom: 4 }}>Planned, but assessed nowhere.</h2>
-          <p className="secondary" style={{ fontSize: 12.5, margin: '0 0 12px', lineHeight: 1.55 }}>
+          <MethodHeading method={METHODS.neverAssessedTable} title="Planned, but assessed nowhere">
+            <h2 style={{ fontSize: 14 }}>Planned, but assessed nowhere.</h2>
+          </MethodHeading>
+          <p className="secondary" style={{ fontSize: 12.5, margin: '4px 0 12px', lineHeight: 1.55 }}>
             Not one tracker in the district assessed these. There is no data to tell you whether
             students learned them.
           </p>
@@ -129,8 +184,10 @@ export function CoverageGaps() {
       {/* Partial coverage */}
       {partial.length > 0 && (
         <div className="card">
-          <h2 style={{ fontSize: 14, marginBottom: 4 }}>Assessed in some trackers only.</h2>
-          <p className="secondary" style={{ fontSize: 12.5, margin: '0 0 12px', lineHeight: 1.55 }}>
+          <MethodHeading method={METHODS.partlyAssessedTable} title="Assessed in some trackers only">
+            <h2 style={{ fontSize: 14 }}>Assessed in some trackers only.</h2>
+          </MethodHeading>
+          <p className="secondary" style={{ fontSize: 12.5, margin: '4px 0 12px', lineHeight: 1.55 }}>
             Comparing these standards across the district is unsafe, because some classrooms have no
             result at all.
           </p>
@@ -170,8 +227,10 @@ export function CoverageGaps() {
       {/* Off-map */}
       {c.offMap.length > 0 && (
         <div className="card" style={{ borderLeft: '3px solid var(--status-warning)' }}>
-          <h2 style={{ fontSize: 14, marginBottom: 4 }}>Assessed, but not in the map.</h2>
-          <p className="secondary" style={{ fontSize: 12.5, margin: '0 0 12px', lineHeight: 1.55 }}>
+          <MethodHeading method={METHODS.offMapTable} title="Assessed, but not in the map">
+            <h2 style={{ fontSize: 14 }}>Assessed, but not in the map.</h2>
+          </MethodHeading>
+          <p className="secondary" style={{ fontSize: 12.5, margin: '4px 0 12px', lineHeight: 1.55 }}>
             Teachers built assessments for standards the year map never planned. Usually that means
             filling a prerequisite gap, which is worth knowing before you revise the map.
           </p>
@@ -198,7 +257,7 @@ export function CoverageGaps() {
         </div>
       )}
 
-      <SourceNote endpoints={['GET /api/v2/curriculum_maps/{id}/objectives', 'GET /api/v2/trackers/{id}/assessments', 'GET /api/v2/class_objectives']} />
+      <SourceNote endpoints={MATCH_ENDPOINTS} />
     </div>
   )
 }

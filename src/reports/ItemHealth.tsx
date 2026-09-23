@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { itemHealth, type Finding, type Severity } from '../data/queries'
 import { CLASSROOMS } from '../data/seed'
 import { MATERIALS } from '../data/api'
-import { Meter, SeverityBadge, Select, StatTile, SourceNote, Legend } from '../components/ui'
+import { Meter, MethodHeading, SeverityBadge, Select, StatTile, SourceNote, Legend, type Method } from '../components/ui'
+import { ENDPOINTS } from '../data/endpoints'
 
 const SEV_ORDER: Severity[] = ['critical', 'serious', 'warning']
 
@@ -16,6 +17,49 @@ const SEV_FILL: Record<Severity, string> = {
 const SEV_LABEL: Record<Severity, string> = { critical: 'Critical', serious: 'Serious', warning: 'Review' }
 
 const WEIGHTING_KINDS = new Set(['Overweighted and failing', 'Too easy for its weight'])
+
+const ANALYSIS_ENDPOINTS = [ENDPOINTS.classrooms, ENDPOINTS.itemAnalysis]
+
+/* Peer mean = mean percent_correct of the other items on the same standard in the same tracker. */
+const PEER_STEPS = [
+  'For every tracker, pull the item analysis rows and group them by standard.',
+  'For each item, average percent_correct across the other items in its group and round. That is the peer mean. An item with no siblings uses its own percent_correct, so the miskey rule can never fire on it.',
+]
+
+const RULES = [
+  'Critical, possible miskey: percent_correct under 20 and at least 35 points below the peer mean.',
+  'Serious, overweighted and failing: 4 or more points and percent_correct under 35.',
+  'Review, too easy for its weight: percent_correct 95 or higher and 3 or more points.',
+  'Serious, recall item failing: DOK 1 and percent_correct under 30.',
+  'Rules run in that order and an item takes the first one it matches.',
+]
+
+const UNFILTERED = 'The tracker, standard, and severity filters on this page do not change this number.'
+
+const METHODS = {
+  scanned: {
+    steps: ['List every assessment in every tracker.', 'Add up each assessment\u2019s item count.', UNFILTERED],
+    endpoints: [ENDPOINTS.classrooms, ENDPOINTS.materials, ENDPOINTS.materialItems],
+  },
+  fix: {
+    steps: [...PEER_STEPS, 'Count items that match any of the four rules below.', ...RULES, 'Divide by items scanned for the percent.', UNFILTERED],
+    endpoints: [...ANALYSIS_ENDPOINTS, ENDPOINTS.materialItems],
+  },
+  miskey: {
+    steps: [...PEER_STEPS, RULES[0], UNFILTERED],
+    endpoints: ANALYSIS_ENDPOINTS,
+  },
+  weighting: {
+    steps: [...PEER_STEPS, 'Count items that match either rule:', RULES[1], RULES[2], UNFILTERED],
+    endpoints: [...ANALYSIS_ENDPOINTS, ENDPOINTS.materialItems],
+  },
+  cards: {
+    steps: [...PEER_STEPS, ...RULES,
+      'Apply the tracker, standard, and severity filters, then sort by severity and by percent_correct from lowest to highest.',
+      'The two meters show this item\u2019s percent_correct and the peer mean. The gap is the difference between them in percentage points, shown without a sign and labeled Harder or Easier than peers.'],
+    endpoints: [ENDPOINTS.classrooms, ENDPOINTS.materials, ENDPOINTS.itemAnalysis, ENDPOINTS.materialItems],
+  },
+} satisfies Record<string, Method>
 
 /* The heat map links here as #items?tracker=ID&standard=CODE. */
 function readParams() {
@@ -118,11 +162,13 @@ export function ItemHealth() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 12 }}>
-        <StatTile label="Items scanned" value={totalItems.toLocaleString()} note={`${MATERIALS.length} assessments across ${CLASSROOMS.length} trackers`} />
-        <StatTile label="Needs a fix" value={all.length} note={`${((all.length / totalItems) * 100).toFixed(1)}% of all items`} />
-        <StatTile label="Likely miskeyed" value={counts.critical} note="Fix before the next window" />
-        <StatTile label="Weighting problems" value={weighting} note="Points do not match difficulty" />
+        <StatTile label="Items scanned" value={totalItems.toLocaleString()} note={`${MATERIALS.length} assessments across ${CLASSROOMS.length} trackers`} method={METHODS.scanned} />
+        <StatTile label="Needs a fix" value={all.length} note={`${((all.length / totalItems) * 100).toFixed(1)}% of all items`} method={METHODS.fix} />
+        <StatTile label="Likely miskeyed" value={counts.critical} note="Fix before the next window" method={METHODS.miskey} />
+        <StatTile label="Weighting problems" value={weighting} note="Points do not match difficulty" method={METHODS.weighting} />
       </div>
+
+      <MethodHeading method={METHODS.cards} title="Flagged items" />
 
       {findings.length === 0 ? (
         <div className="card" style={{ textAlign: 'center', padding: 44, color: 'var(--text-secondary)' }}>
@@ -151,7 +197,7 @@ export function ItemHealth() {
         ]}
       />
 
-      <SourceNote endpoints={['GET /api/v2/reports/item_analysis', 'GET /api/v2/materials/{id}/items']} />
+      <SourceNote endpoints={[ENDPOINTS.itemAnalysis, ENDPOINTS.materialItems]} />
     </div>
   )
 }

@@ -1,4 +1,5 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 /* ---------- Hover tooltip ---------- */
 
@@ -78,13 +79,194 @@ export function Legend({ items, title }: { items: LegendItem[]; title?: string }
   )
 }
 
+/* ---------- Method badge: how a number is calculated, and which endpoints feed it ---------- */
+
+export interface Method {
+  /** Plain-language steps, one per line. */
+  steps: string[]
+  /** API calls that feed the number. */
+  endpoints: string[]
+  /** Set when part of the input is not in the API. */
+  invented?: string
+  /** Set when the sample fixture takes a shortcut a live build would not. */
+  sample?: string
+}
+
+const POPOVER_WIDTH = 340
+const POPOVER_GAP = 6
+const VIEWPORT_MARGIN = 8
+
+const SECTION_LABEL: CSSProperties = {
+  fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 4,
+}
+
+export function MethodBadge({ method, title }: { method: Method; title: string }) {
+  /* Hover or focus shows the popover. Click pins it until the next click, an outside click, blur, or Escape. */
+  const [pinned, setPinned] = useState(false)
+  const [hover, setHover] = useState(false)
+  const [box, setBox] = useState<{ top: number; left: number; width: number; maxHeight?: number }>({ top: 0, left: 0, width: POPOVER_WIDTH })
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+  const leaveTimer = useRef<number | undefined>(undefined)
+  const popoverId = useId()
+  const open = pinned || hover
+
+  function closeAll() {
+    setPinned(false)
+    setHover(false)
+  }
+
+  /* A short grace period so the pointer can cross the gap into the popover. */
+  function enter() {
+    window.clearTimeout(leaveTimer.current)
+    setHover(true)
+  }
+  function leave() {
+    window.clearTimeout(leaveTimer.current)
+    leaveTimer.current = window.setTimeout(() => setHover(false), 180)
+  }
+
+  useLayoutEffect(() => {
+    if (!open) return
+
+    function place() {
+      const rect = buttonRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const width = Math.min(POPOVER_WIDTH, window.innerWidth - VIEWPORT_MARGIN * 2)
+      /* Natural height, ignoring any max-height already applied. The 2 is the top and bottom border. */
+      const height = popoverRef.current ? popoverRef.current.scrollHeight + 2 : 0
+      const below = rect.bottom + POPOVER_GAP
+      const roomBelow = window.innerHeight - VIEWPORT_MARGIN - below
+      const roomAbove = rect.top - POPOVER_GAP - VIEWPORT_MARGIN
+      let top = below
+      let maxHeight = roomBelow
+      if (height > roomBelow && roomAbove > roomBelow) {
+        /* Above the badge when there is more room there. It scrolls rather than cover the badge. */
+        maxHeight = roomAbove
+        top = rect.top - POPOVER_GAP - Math.min(height, roomAbove)
+      }
+      const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.left, window.innerWidth - width - VIEWPORT_MARGIN))
+      setBox({ top, left, width, maxHeight })
+    }
+
+    place()
+    const onMouseDown = (e: MouseEvent) => {
+      if (!(e.target as Element).closest('.method-popover, .method-badge')) closeAll()
+    }
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') closeAll() }
+    /* Layout shifts elsewhere on the page move the badge, so follow it. */
+    const observer = new ResizeObserver(place)
+    observer.observe(document.body)
+    window.addEventListener('mousedown', onMouseDown)
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('scroll', place, true)
+    window.addEventListener('resize', place)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('mousedown', onMouseDown)
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('scroll', place, true)
+      window.removeEventListener('resize', place)
+    }
+  }, [open])
+
+  useEffect(() => () => window.clearTimeout(leaveTimer.current), [])
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        className="method-badge no-print"
+        aria-label={`How ${title} is calculated`}
+        aria-describedby={open ? popoverId : undefined}
+        onClick={() => (pinned ? closeAll() : setPinned(true))}
+        onMouseEnter={enter}
+        onMouseLeave={leave}
+        onFocus={enter}
+        onBlur={closeAll}
+        style={{
+          font: 'inherit', fontSize: 9.5, fontWeight: 600, textTransform: 'uppercase',
+          letterSpacing: '0.04em', padding: '2px 6px', borderRadius: 3, cursor: 'help',
+          border: '1px solid var(--border)', background: 'transparent',
+          color: open ? 'var(--text-primary)' : 'var(--text-muted)',
+          display: 'inline-flex', alignItems: 'center', gap: 4, lineHeight: 1.4, flexShrink: 0,
+        }}
+      >
+        <span aria-hidden style={{ fontSize: 10 }}>&#8505;</span>
+        Method
+      </button>
+      {open && createPortal(
+        <div
+          ref={popoverRef}
+          id={popoverId}
+          role="tooltip"
+          className="method-popover"
+          onMouseEnter={enter}
+          onMouseLeave={leave}
+          /* Keep focus on the badge so a click inside does not blur it closed. */
+          onMouseDown={(e) => e.preventDefault()}
+          style={{
+            position: 'fixed', top: box.top, left: box.left, width: box.width, zIndex: 50,
+            background: 'var(--surface-1)', color: 'var(--text-primary)',
+            border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)', fontSize: 12, lineHeight: 1.5, textAlign: 'left',
+            maxHeight: box.maxHeight, overflowY: 'auto',
+          }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>{title}</div>
+          <div style={SECTION_LABEL}>Calculation</div>
+          <ol style={{ margin: '0 0 10px', paddingLeft: 18, color: 'var(--text-secondary)' }}>
+            {method.steps.map((step, i) => <li key={i} style={{ marginBottom: 2 }}>{step}</li>)}
+          </ol>
+          <div style={SECTION_LABEL}>Endpoints</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {method.endpoints.map((e) => (
+              <code key={e} style={{ fontSize: 11, background: 'var(--grid)', padding: '2px 6px', borderRadius: 4, wordBreak: 'break-all', alignSelf: 'flex-start' }}>{e}</code>
+            ))}
+          </div>
+          {method.sample && (
+            <div style={{ marginTop: 10, color: 'var(--text-secondary)' }}>
+              <strong style={{ color: 'var(--status-warning)', fontWeight: 600 }}>Sample data. </strong>
+              {method.sample}
+            </div>
+          )}
+          {method.invented && (
+            <div style={{ marginTop: 10, color: 'var(--text-secondary)' }}>
+              <strong style={{ color: 'var(--status-critical)', fontWeight: 600 }}>Not in the API. </strong>
+              {method.invented}
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
+
+/* ---------- Heading row with a method badge on the right ---------- */
+
+export function MethodHeading({ method, title, children }: { method: Method; title: string; children?: ReactNode }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: children ? 'space-between' : 'flex-end', alignItems: 'center', gap: 10 }}>
+      {children}
+      <MethodBadge method={method} title={title} />
+    </div>
+  )
+}
+
 /* ---------- Stat tile ---------- */
 
-export function StatTile({ label, value, unit, note }: { label: string; value: string | number; unit?: string; note?: string }) {
+export function StatTile({ label, value, unit, note, method }: {
+  label: string; value: string | number; unit?: string; note?: string; method?: Method
+}) {
   return (
     <div className="card" style={{ padding: '14px 16px', minWidth: 0 }}>
-      <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: 6 }}>
-        {label}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
+          {label}
+        </div>
+        {method && <MethodBadge method={method} title={label} />}
       </div>
       <div style={{ fontSize: 28, fontWeight: 600, lineHeight: 1.05, letterSpacing: '-0.02em' }}>
         {value}
